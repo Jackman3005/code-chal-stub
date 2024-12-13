@@ -30,6 +30,11 @@ declare module "next-auth" {
 
 const PREPEND_COOKIENAME = process.env.VERCEL ? "__Secure-" : "";
 
+const credentialsSchema = z.object({
+  email: z.string().email(),
+  password: z.string().min(1),
+})
+
 /**
  * Options for NextAuth.js used to configure adapters, providers, callbacks, etc.
  *
@@ -45,19 +50,18 @@ export const authConfig: AuthOptions = {
       // e.g. domain, username, password, 2FA token, etc.
       // You can pass any HTML attribute to the <input> tag through the object.
       credentials: {
-        username: { label: "Username", type: "text", placeholder: "jsmith" },
+        email: { label: "Email", type: "email", placeholder: "jsmith@example.com" },
         password: { label: "Password", type: "password" },
       },
-      async authorize(credentials, _req) {
-        if (
-          !credentials?.username ||
-          typeof credentials.username !== "string" ||
-          !z.string().email().safeParse(credentials.username).success ||
-          !credentials.password ||
-          typeof credentials.password !== "string"
-        ) {
+      async authorize(_credentials, _req) {
+        const credentialsParseResult = credentialsSchema.safeParse(_credentials);
+
+        if (!credentialsParseResult.success) {
           return null;
         }
+
+        const credentials = credentialsParseResult.data;
+
 
         // You need to provide your own logic here that takes the credentials
         // submitted and returns either a object representing a user or value
@@ -67,28 +71,36 @@ export const authConfig: AuthOptions = {
         // (i.e., the request IP address)
         const user = await db.user.findFirst({
           where: {
-            email: credentials.username,
-            // password: credentials.password,
+            email: credentials.email,
           },
         });
 
-        if (!user) {
-          const newUser = await db.user.create({
+        if (user) {
+          console.debug(
+            "Found existing user:",
+            user,
+            "\nCredentials provided:",
+            credentials,
+          );
+
+          if (user.password !== credentials.password) {
+            console.warn("Incorrect password provided, authorization failed.");
+            return null;
+          }
+
+          return user;
+        } else {
+          console.debug(
+            "No existing user found. Creating new user from credentials:",
+            credentials,
+          );
+          return db.user.create({
             data: {
-              email: credentials.username,
+              email: credentials.email,
               password: credentials.password,
             },
           });
-          return newUser;
         }
-
-        console.log(user, credentials);
-
-        if (user.password !== credentials.password) {
-          return null;
-        }
-
-        return user;
       },
     }),
   ],
