@@ -22,6 +22,7 @@
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.7.2",
+    "@fingerprintjs/fingerprintjs": "^4.5.1",
     "@nextui-org/system": "^2.4.4",
     "@nextui-org/table": "^2.2.6",
     "@nextui-org/theme": "^2.4.3",

@@ -137,6 +137,7 @@ export async function authHandler(req: NextApiRequest, res: NextApiResponse) {
     res,
     {
       ...authConfig,
+      pages: {signIn: "/auth/signin"},
       callbacks: {
         ...authConfig.callbacks,
         async signIn({
