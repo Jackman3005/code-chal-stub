@@ -3,7 +3,7 @@ import { createTRPCRouter, quickliAdminProcedure } from "~/server/api/trpc";
 export const adminRouter = createTRPCRouter({
   getActiveUsers: quickliAdminProcedure.query(async ({ ctx }) => {
     const now = new Date();
-    const users = await ctx.db.user.findMany({
+    const usersWithActiveSessions = await ctx.db.user.findMany({
       // orderBy: { createdAt: "desc" }, // Order by lastSeenAt once implemented
       where: { sessions: { some: { expires: { gt: now } } } },
       select: {
@@ -22,7 +22,7 @@ export const adminRouter = createTRPCRouter({
       },
     });
 
-    return users
+    return usersWithActiveSessions
       .map((user) => {
         let rating = 0;
 
