@@ -60,9 +60,23 @@ export const createTRPCContext = async (opts: CreateNextContextOptions) => {
       where: { sessionToken: sessionToken },
     });
     if (dbSession) {
-      const user = await db.user.findUnique({
-        where: { id: dbSession?.userId },
-      });
+      const lastSeenAtThreshold = new Date();
+      lastSeenAtThreshold.setMinutes(lastSeenAtThreshold.getMinutes() - 5);
+      const [user] = await Promise.all([
+        db.user.findUnique({
+          where: { id: dbSession?.userId },
+        }),
+        // Update lastSeenAt if more than a few minutes have passed.
+        ...(dbSession.lastSeenAt < lastSeenAtThreshold
+          ? [
+              db.session.update({
+                where: { id: dbSession.id },
+                data: { lastSeenAt: new Date() },
+                select: { id: true }, // minimize data transfer
+              }),
+            ]
+          : []),
+      ]);
       if (user) {
         session = {
           ...dbSession,
@@ -194,15 +208,14 @@ export const protectedProcedure = t.procedure
 export const quickliAdminProcedure = t.procedure
   .use(timingMiddleware)
   .use(async ({ ctx, next }) => {
+    const userIdFromSession = ctx.session?.user?.id;
 
-    const userIdFromSession = ctx.session?.user?.id
-
-    if (userIdFromSession){
+    if (userIdFromSession) {
       const user = await db.user.findUnique({
         where: { id: userIdFromSession },
-        select: { isQuickliAdmin: true }
+        select: { isQuickliAdmin: true },
       });
-      if (user?.isQuickliAdmin){
+      if (user?.isQuickliAdmin) {
         return next({
           ctx: {
             session: { ...ctx.session, user: ctx.session!.user },
@@ -211,5 +224,5 @@ export const quickliAdminProcedure = t.procedure
       }
     }
 
-      throw new TRPCError({ code: "UNAUTHORIZED" });
+    throw new TRPCError({ code: "UNAUTHORIZED" });
   });

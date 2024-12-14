@@ -33,6 +33,11 @@ const columns = [
     allowsSorting: true,
   },
   {
+    key: "lastSeenAt",
+    label: "LAST ACTIVE",
+    allowsSorting: true,
+  },
+  {
     key: "userId",
     label: "USER ID",
   },
@@ -79,6 +84,9 @@ const AdminDashboardPage: NextPage = () => {
       .map((session) => session.ipAddress)
       .filter((ip) => ip !== null)
       .filter((ip, index, arr) => arr.indexOf(ip) === index).length,
+    lastSeenAt: user.sessions.reduce((acc, session) => {
+      return session.lastSeenAt > acc ? session.lastSeenAt : acc;
+    }, new Date(0)).toLocaleString(),
     userId: user.id,
   }));
 
