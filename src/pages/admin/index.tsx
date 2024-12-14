@@ -18,8 +18,18 @@ const columns = [
     label: "USER",
   },
   {
+    key: "abuseRating",
+    label: "ABUSE RATING",
+    allowsSorting: true,
+  },
+  {
     key: "sessionCount",
-    label: "ACTIVE SESSIONS",
+    label: "SESSION COUNT",
+    allowsSorting: true,
+  },
+  {
+    key: "ipAddresses",
+    label: "UNIQUE IP ADDRESSES",
     allowsSorting: true,
   },
   {
@@ -63,7 +73,12 @@ const AdminDashboardPage: NextPage = () => {
   const rows = users?.map((user) => ({
     key: user.id,
     user: user.name ?? user.email,
+    abuseRating: user.abuseRating,
     sessionCount: user.sessions.length,
+    ipAddresses: user.sessions
+      .map((session) => session.ipAddress)
+      .filter((ip) => ip !== null)
+      .filter((ip, index, arr) => arr.indexOf(ip) === index).length,
     userId: user.id,
   }));
 

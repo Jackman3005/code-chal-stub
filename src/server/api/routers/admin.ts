@@ -21,29 +21,36 @@ export const adminRouter = createTRPCRouter({
       },
     });
 
-    return users.map((user) =>{
-      let rating = 0;
+    return users
+      .map((user) => {
+        let rating = 0;
 
-      // This is a bit of the "magic"
-      // of determining the thresholds that punish bad behavior,
-      // inform users with borderline behavior but avoid false positives...
+        // This is a bit of the "magic"
+        // of determining the thresholds that punish bad behavior,
+        // inform users with borderline behavior but avoid false positives...
 
-      const sessionCount = user.sessions.length;
-      const uniqueIpAddresses = user.sessions.reduce((acc, session) => {
-        if (session.ipAddress === null){
+        const sessionCount = user.sessions.length;
+        const uniqueIpAddresses = user.sessions.reduce((acc, session) => {
+          if (session.ipAddress === null) {
+            return acc;
+          }
+          if (!acc.includes(session.ipAddress)) {
+            acc.push(session.ipAddress);
+          }
           return acc;
-        }
-        if (!acc.includes(session.ipAddress)){
-          acc.push(session.ipAddress);
-        }
-        return acc;
-      }, [] as string[]);
+        }, [] as string[]);
 
-      rating += Math.max(0, sessionCount - 1);
-      rating += Math.max(0, uniqueIpAddresses.length - 1);
+        rating += Math.max(0, sessionCount - 1);
+        rating += Math.max(0, uniqueIpAddresses.length - 1);
 
-
-      return {...user, abuseRating:rating}
-    });
+        return { ...user, abuseRating: rating };
+      })
+      .sort((a, b) =>
+        a.abuseRating === b.abuseRating
+          ? 0
+          : a.abuseRating > b.abuseRating
+            ? -1
+            : 1,
+      );
   }),
 });
