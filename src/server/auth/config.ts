@@ -6,6 +6,7 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import NextAuth from "next-auth";
 import { randomUUID } from "crypto";
 import { db } from "~/server/db";
+import {getClientIp} from "request-ip";
 
 /**
  * Module augmentation for `next-auth` types. Allows us to add custom properties to the `session`
@@ -121,8 +122,14 @@ export const authConfig: AuthOptions = {
   jwt: {},
 } satisfies AuthOptions;
 
+const SESSION_EXPIRY_HOURS = 24 * 7;
+
 export async function authHandler(req: NextApiRequest, res: NextApiResponse) {
   // Do whatever you want here, before the request is passed down to `NextAuth`
+
+  const clientIp = getClientIp(req);
+  console.log("config:129 - clientIp", clientIp);
+
   // eslint-disable-next-line @typescript-eslint/no-unsafe-return
   return await NextAuth(
     // @ts-expect-error expecting NextRequest for some reason
@@ -145,13 +152,14 @@ export async function authHandler(req: NextApiRequest, res: NextApiResponse) {
             if (user) {
               const sessionToken = randomUUID();
               const sessionExpiry = new Date();
-              sessionExpiry.setHours(sessionExpiry.getHours() + 24 * 7);
+              sessionExpiry.setHours(sessionExpiry.getHours() + SESSION_EXPIRY_HOURS);
 
               await db.session.create({
                 data: {
                   sessionToken: sessionToken,
                   userId: user.id,
                   expires: sessionExpiry,
+                  ipAddress: clientIp,
                 },
               });
 
@@ -159,7 +167,7 @@ export async function authHandler(req: NextApiRequest, res: NextApiResponse) {
                 "Set-Cookie",
                 `${PREPEND_COOKIENAME}next-auth.session-token=${sessionToken}; ` +
                   `Path=/; ` +
-                  `Max-Age=${Math.round(60 * 60 * 24 * 7)}; ` +
+                  `Max-Age=${Math.round(60 * 60 * SESSION_EXPIRY_HOURS)}; ` +
                   `HttpOnly; ` +
                   `Secure; ` +
                   `SameSite=Lax; `,
