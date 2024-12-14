@@ -1,5 +1,6 @@
 import { scenarioRouter } from "~/server/api/routers/scenario";
 import { createCallerFactory, createTRPCRouter } from "~/server/api/trpc";
+import { adminRouter } from "~/server/api/routers/admin";
 
 /**
  * This is the primary router for your server.
@@ -8,6 +9,7 @@ import { createCallerFactory, createTRPCRouter } from "~/server/api/trpc";
  */
 export const appRouter = createTRPCRouter({
   scenario: scenarioRouter,
+  admin: adminRouter,
 });
 
 // export type definition of API

@@ -178,3 +178,38 @@ export const protectedProcedure = t.procedure
       },
     });
   });
+
+/**
+ * Quickli Admin-only procedure
+ *
+ * If you want a query or mutation
+ * to ONLY be accessible to logged in Quickli Admin users,
+ * use this.
+ * It verifies
+ * the session is valid and guarantees `ctx.session.user.isQuickliAdmin`
+ * is `true`.
+ *
+ * @see https://trpc.io/docs/procedures
+ */
+export const quickliAdminProcedure = t.procedure
+  .use(timingMiddleware)
+  .use(async ({ ctx, next }) => {
+
+    const userIdFromSession = ctx.session?.user?.id
+
+    if (userIdFromSession){
+      const user = await db.user.findUnique({
+        where: { id: userIdFromSession },
+        select: { isQuickliAdmin: true }
+      });
+      if (user?.isQuickliAdmin){
+        return next({
+          ctx: {
+            session: { ...ctx.session, user: ctx.session!.user },
+          },
+        });
+      }
+    }
+
+      throw new TRPCError({ code: "UNAUTHORIZED" });
+  });
